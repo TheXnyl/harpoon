@@ -81,11 +81,11 @@ function M.toggle_quick_menu()
     vim.cmd(
         string.format(
             "autocmd Filetype harpoon "
-                .. "let path = '%s' | call clearmatches() | "
-                -- move the cursor to the line containing the current filename
-                .. "call search('\\V'.path.'\\$') | "
-                -- add a hl group to that line
-                .. "call matchadd('HarpoonCurrentFile', '\\V'.path.'\\$')",
+            .. "let path = '%s' | call clearmatches() | "
+            -- move the cursor to the line containing the current filename
+            .. "call search('\\V'.path.'\\$') | "
+            -- add a hl group to that line
+            .. "call matchadd('HarpoonCurrentFile', '\\V'.path.'\\$')",
             curr_file:gsub("\\", "\\\\")
         )
     )
@@ -187,6 +187,52 @@ function M.nav_file(id)
 
     local mark = Marked.get_marked_file(idx)
     local filename = vim.fs.normalize(mark.filename)
+    local buf_id = get_or_create_buffer(filename)
+    local set_row = not vim.api.nvim_buf_is_loaded(buf_id)
+
+    local old_bufnr = vim.api.nvim_get_current_buf()
+
+    vim.api.nvim_set_current_buf(buf_id)
+    vim.api.nvim_buf_set_option(buf_id, "buflisted", true)
+    if set_row and mark.row and mark.col then
+        vim.api.nvim_win_set_cursor(0, { mark.row, mark.col })
+        log.debug(
+            string.format(
+                "nav_file(): Setting cursor to row: %d, col: %d",
+                mark.row,
+                mark.col
+            )
+        )
+    end
+
+    local old_bufinfo = vim.fn.getbufinfo(old_bufnr)
+    if type(old_bufinfo) == "table" and #old_bufinfo >= 1 then
+        old_bufinfo = old_bufinfo[1]
+        local no_name = old_bufinfo.name == ""
+        local one_line = old_bufinfo.linecount == 1
+        local unchanged = old_bufinfo.changed == 0
+        if no_name and one_line and unchanged then
+            vim.api.nvim_buf_delete(old_bufnr, {})
+        end
+    end
+end
+
+function M.nav_or_add_file(id)
+    log.trace("nav_file(): Navigating to", id)
+    local idx = Marked.get_index_of(id)
+    if not Marked.valid_index(idx) then
+        Marked.set_current_at(id)
+        return
+    end
+
+    local mark = Marked.get_marked_file(idx)
+    local filename = vim.fs.normalize(mark.filename)
+
+    if vim.fn.filereadable(filename) == 0 then
+        Marked.set_current_at(idx)
+        return
+    end
+
     local buf_id = get_or_create_buffer(filename)
     local set_row = not vim.api.nvim_buf_is_loaded(buf_id)
 
