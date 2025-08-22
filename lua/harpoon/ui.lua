@@ -233,34 +233,7 @@ function M.nav_or_add_file(id)
         return
     end
 
-    local buf_id = get_or_create_buffer(filename)
-    local set_row = not vim.api.nvim_buf_is_loaded(buf_id)
-
-    local old_bufnr = vim.api.nvim_get_current_buf()
-
-    vim.api.nvim_set_current_buf(buf_id)
-    vim.api.nvim_buf_set_option(buf_id, "buflisted", true)
-    if set_row and mark.row and mark.col then
-        vim.api.nvim_win_set_cursor(0, { mark.row, mark.col })
-        log.debug(
-            string.format(
-                "nav_file(): Setting cursor to row: %d, col: %d",
-                mark.row,
-                mark.col
-            )
-        )
-    end
-
-    local old_bufinfo = vim.fn.getbufinfo(old_bufnr)
-    if type(old_bufinfo) == "table" and #old_bufinfo >= 1 then
-        old_bufinfo = old_bufinfo[1]
-        local no_name = old_bufinfo.name == ""
-        local one_line = old_bufinfo.linecount == 1
-        local unchanged = old_bufinfo.changed == 0
-        if no_name and one_line and unchanged then
-            vim.api.nvim_buf_delete(old_bufnr, {})
-        end
-    end
+    return M.nav_file(id)
 end
 
 function M.location_window(options)
