@@ -99,9 +99,9 @@ function M.toggle_quick_menu()
 
     for idx = 1, Marked.get_length() do
         local file = Marked.get_marked_file_name(idx)
-        if file == "" then
-            file = "(empty)"
-        end
+        -- if file == "" then
+        --     file = "(empty)"
+        -- end
         contents[idx] = string.format("%s", file)
     end
 
